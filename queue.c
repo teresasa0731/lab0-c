@@ -22,7 +22,8 @@ struct list_head *q_new()
 }
 
 /* Free all storage used by queue */
-void q_free(struct list_head *head) {
+void q_free(struct list_head *head)
+{
     if (!head)
         return;
 
@@ -47,13 +48,14 @@ bool q_insert_head(struct list_head *head, char *s)
 
     INIT_LIST_HEAD(&new_node->list);
     new_node->value = (char *) malloc(sizeof(char) * (strlen(s) + 1));
-    
+
     // duplicate string failure
     if (!new_node->value) {
         free(new_node);
         return false;
     }
-    strcpy(new_node->value, s);
+
+    strncpy(new_node->value, s, strlen(s) + 1);
     list_add(&new_node->list, head);
     return true;
 }
@@ -61,6 +63,25 @@ bool q_insert_head(struct list_head *head, char *s)
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+
+    element_t *new_node = malloc(sizeof(element_t));
+    // malloc failure
+    if (!new_node)
+        return false;
+
+    INIT_LIST_HEAD(&new_node->list);
+    new_node->value = (char *) malloc(sizeof(char) * (strlen(s) + 1));
+
+    // duplicate string failure
+    if (!new_node->value) {
+        free(new_node);
+        return false;
+    }
+
+    strncpy(new_node->value, s, strlen(s) + 1);
+    list_add_tail(&new_node->list, head);
     return true;
 }
 
