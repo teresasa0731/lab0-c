@@ -26,7 +26,7 @@ void q_free(struct list_head *head) {
     if (!head)
         return;
 
-    elememt_t *cur, *next;
+    element_t *cur, *next;
     list_for_each_entry_safe (cur, next, head, list)
         q_release_element(cur);
 
@@ -37,6 +37,24 @@ void q_free(struct list_head *head) {
 /* Insert an element at head of queue */
 bool q_insert_head(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+
+    element_t *new_node = malloc(sizeof(element_t));
+    // malloc failure
+    if (!new_node)
+        return false;
+
+    INIT_LIST_HEAD(&new_node->list);
+    new_node->value = (char *) malloc(sizeof(char) * (strlen(s) + 1));
+    
+    // duplicate string failure
+    if (!new_node->value) {
+        free(new_node);
+        return false;
+    }
+    strcpy(new_node->value, s);
+    list_add(&new_node->list, head);
     return true;
 }
 
