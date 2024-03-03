@@ -46,8 +46,7 @@ bool q_insert_head(struct list_head *head, char *s)
     if (!new_node)
         return false;
 
-    INIT_LIST_HEAD(&new_node->list);
-    new_node->value = (char *) malloc(sizeof(char) * (strlen(s) + 1));
+    new_node->value = malloc(strlen(s) + 1);
 
     // duplicate string failure
     if (!new_node->value) {
@@ -55,10 +54,16 @@ bool q_insert_head(struct list_head *head, char *s)
         return false;
     }
 
-    strncpy(new_node->value, s, strlen(s) + 1);
+    if (strncpy(new_node->value, s, strlen(s) + 1) == NULL) {
+        free(new_node->value);
+        free(new_node);
+        return false;
+    }
+
     list_add(&new_node->list, head);
     return true;
 }
+
 
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
@@ -71,8 +76,7 @@ bool q_insert_tail(struct list_head *head, char *s)
     if (!new_node)
         return false;
 
-    INIT_LIST_HEAD(&new_node->list);
-    new_node->value = (char *) malloc(sizeof(char) * (strlen(s) + 1));
+    new_node->value = malloc(strlen(s) + 1);
 
     // duplicate string failure
     if (!new_node->value) {
@@ -80,7 +84,12 @@ bool q_insert_tail(struct list_head *head, char *s)
         return false;
     }
 
-    strncpy(new_node->value, s, strlen(s) + 1);
+    if (strncpy(new_node->value, s, strlen(s) + 1) == NULL) {
+        free(new_node->value);
+        free(new_node);
+        return false;
+    }
+
     list_add_tail(&new_node->list, head);
     return true;
 }
