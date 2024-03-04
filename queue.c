@@ -1,9 +1,9 @@
+#include "queue.h"
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "queue.h"
 
 /* Notice: sometimes, Cppcheck would find the potential NULL pointer bugs,
  * but some of them cannot occur. You can suppress them by adding the
@@ -93,6 +93,7 @@ bool q_insert_tail(struct list_head *head, char *s)
     return true;
 }
 
+
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
@@ -124,7 +125,6 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     }
     return rm_node;
 }
-
 
 /* Return number of elements in queue */
 int q_size(struct list_head *head)
@@ -219,6 +219,7 @@ void q_reverse(struct list_head *head)
     return;
 }
 
+
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
@@ -232,11 +233,11 @@ void q_reverseK(struct list_head *head, int k)
     LIST_HEAD(new_head);
 
     while (group) {
-        int cnt = k;
+        int cnt = 0;
         list_for_each (cut, head) {
-            if (cnt)
+            if (cnt >= k)
                 break;
-            cnt--;
+            cnt++;
         }
         list_cut_position(&tmp, head, cut->prev);
         q_reverse(&tmp);
@@ -249,25 +250,30 @@ void q_reverseK(struct list_head *head, int k)
 static struct list_head *mergeSortedList(struct list_head *L,
                                          struct list_head *R)
 {
-    struct list_head *head = NULL;
+    struct list_head *head = L, *prev = NULL;
     struct list_head **ptr = &head;
 
     while (L && R) {
-        element_t *left = list_entry(L, element_t, list);
-        element_t *right = list_entry(R, element_t, list);
-
-        if (strcmp(left->value, right->value) > 0) {
+        if (strcmp(list_entry(L, element_t, list)->value,
+                   list_entry(R, element_t, list)->value) > 0) {
             *ptr = R;
+            (*ptr)->prev = prev;
+            prev = R;
             R = R->next;
         } else {
             *ptr = L;
+            (*ptr)->prev = prev;
+            prev = L;
             L = L->next;
         }
         ptr = &(*ptr)->next;
     }
+
     *ptr = (struct list_head *) ((uintptr_t) R | (uintptr_t) L);
+    (*ptr)->prev = prev;
     return head;
 }
+
 
 static struct list_head *mergeSort(struct list_head *head)
 {
@@ -291,145 +297,22 @@ void q_sort(struct list_head *head, bool descend)
     if (!head || list_empty(head) || !head->next)
         return;
 
-    struct list_head *tmp_prev = head, *it = head->next;
-
+    // cut circular list
     head->prev->next = NULL;
     head->next = mergeSort(head->next);
 
     // reconstruct double-linked list
-    while (it) {
-        it->prev = tmp_prev;
-        tmp_prev = it;
-        it = it->next;
-    }
-    tmp_prev->next = head;
-    head->prev = tmp_prev;
+    head->next->prev = head;
+    struct list_head *tail = head->next;
+    while (tail->next)
+        tail = tail->next;
+
+    head->prev = tail;
+    tail->next = head;
 
     if (descend)
         q_reverse(head);
 }
-
-/* Import Linux kernel list sort */
-
-typedef int (*list_cmp_func_t)(const struct list_head *,
-                               const struct list_head *);
-
-
-static struct list_head *merge(list_cmp_func_t cmp,
-                               struct list_head *a,
-                               struct list_head *b)
-{
-    struct list_head *head = NULL, **tail = &head;
-
-    for (;;) {
-        if (cmp(a, b) <= 0) {
-            *tail = a;
-            tail = &a->next;
-            a = a->next;
-            if (!a) {
-                *tail = b;
-                break;
-            }
-        } else {
-            *tail = b;
-            tail = &b->next;
-            b = b->next;
-            if (!b) {
-                *tail = a;
-                break;
-            }
-        }
-    }
-    return head;
-}
-
-static void merge_final(list_cmp_func_t cmp,
-                        struct list_head *head,
-                        struct list_head *a,
-                        struct list_head *b)
-{
-    struct list_head *tail = head;
-    unsigned char count = 0;
-    for (;;) {
-        if (cmp(a, b) <= 0) {
-            tail->next = a;
-            a->prev = tail;
-            tail = a;
-            a = a->next;
-            if (!a)
-                break;
-        } else {
-            tail->next = b;
-            b->prev = tail;
-            tail = b;
-            b = b->next;
-            if (!b) {
-                b = a;
-                break;
-            }
-        }
-    }
-
-    tail->next = b;
-    do {
-        if (__glibc_unlikely(!++count))
-            cmp(b, b);
-        b->prev = tail;
-        tail = b;
-        b = b->next;
-    } while (b);
-
-    tail->next = head;
-    head->prev = tail;
-}
-
-
-void list_sort(struct list_head *head, list_cmp_func_t cmp)
-{
-    struct list_head *list = head->next, *pending = NULL;
-    size_t count = 0;
-
-    if (list == head->prev)
-        return;
-
-    head->prev->next = NULL;
-
-    do {
-        size_t bits;
-        struct list_head **tail = &pending;
-        for (bits = count; bits & 1; bits >>= 1)
-            tail = &(*tail)->prev;
-
-        // for GNU C Library
-        if (__glibc_likely(bits)) {
-            struct list_head *a = *tail, *b = a->prev;
-
-            a = merge(cmp, b, a);
-            a->prev = b->prev;
-            *tail = a;
-        }
-
-        list->prev = pending;
-        pending = list;
-        list = list->next;
-        pending->next = NULL;
-        count++;
-    } while (list);
-
-    list = pending;
-    pending = pending->prev;
-    for (;;) {
-        struct list_head *next = pending->prev;
-
-        if (!next)
-            break;
-        list = merge(cmp, pending, list);
-        pending = next;
-    }
-    merge_final(cmp, head, pending, list);
-}
-
-/* End of linux kernel list sort */
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
@@ -456,7 +339,6 @@ int q_ascend(struct list_head *head)
     }
     return q_size(head);
 }
-
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
@@ -481,32 +363,26 @@ int q_descend(struct list_head *head)
     return q_size(head);
 }
 
-int mergeTwoLists(struct list_head *l1_head, struct list_head *l2_head)
+/* for merging two list */
+int mergeTwoList(struct list_head *l1, struct list_head *l2)
 {
-    int l1_len = q_size(l1_head);
-    int l2_len = q_size(l2_head);
+    if (!l1 || !l2)
+        return 0;
 
-    struct list_head tmp;
-    INIT_LIST_HEAD(&tmp);
+    LIST_HEAD(tmp);
 
-    while (l1_len > 0 && l2_len > 0) {
-        element_t *l1_entry = list_entry(l1_head->next, element_t, list);
-        element_t *l2_entry = list_entry(l2_head->next, element_t, list);
-
-        if (strcmp(l1_entry->value, l2_entry->value) > 0) {
-            list_move_tail(l2_head->next, &tmp);
-            l2_len--;
-        } else {
-            list_move_tail(l1_head->next, &tmp);
-            l1_len--;
-        }
+    while (!list_empty(l1) && !list_empty(l2)) {
+        element_t *l1_entry = list_entry(l1, element_t, list);
+        element_t *l2_entry = list_entry(l2, element_t, list);
+        element_t *tmp_entry =
+            strcmp(l1_entry->value, l2_entry->value) < 0 ? l1_entry : l2_entry;
+        list_move_tail(&tmp_entry->list, &tmp);
     }
 
-    list_splice_tail(l2_len > 0 ? l2_head : l1_head, &tmp);
-    INIT_LIST_HEAD(l2_len > 0 ? l2_head : l1_head);
-
-    list_splice_tail(&tmp, l1_head);
-    return q_size(l1_head);
+    list_splice_tail_init(l1, &tmp);
+    list_splice_tail_init(l2, &tmp);
+    list_splice(&tmp, l1);
+    return q_size(l1);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
@@ -516,16 +392,21 @@ int q_merge(struct list_head *head, bool descend)
     if (!head || list_empty(head))
         return 0;
 
-    struct list_head *first = head->next;
-    struct list_head *next = first->next;
-    int size = 0;
+    if (list_is_singular(head))
+        return q_size(list_first_entry(head, queue_contex_t, chain)->q);
 
-    queue_contex_t *first_queue = list_entry(first, queue_contex_t, chain);
+    queue_contex_t *result_entry =
+        list_entry(head->next, queue_contex_t, chain);
 
-    for (int i = 1; i < q_size(head); i++) {
-        queue_contex_t *next_queue = list_entry(next, queue_contex_t, chain);
-        size = mergeTwoLists(first_queue->q, next_queue->q);
+    struct list_head *next = head->next->next;
+    while (next != head) {
+        queue_contex_t *next_entry = list_entry(next, queue_contex_t, chain);
+        list_splice_init(next_entry->q, result_entry->q);
+        next_entry->size = 0;
+        result_entry->size = q_size(result_entry->q);
         next = next->next;
     }
-    return size;
+    q_sort(result_entry->q, descend);
+    // https://leetcode.com/problems/merge-k-sorted-lists/
+    return result_entry->size;
 }
