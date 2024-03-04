@@ -489,25 +489,30 @@ int q_descend(struct list_head *head)
 }
 
 /* for merging two list */
-int mergeTwoList(struct list_head *l1, struct list_head *l2)
+void mergeTwoList(struct list_head *l1, struct list_head *l2, bool descend)
 {
     if (!l1 || !l2)
-        return 0;
+        return;
 
     LIST_HEAD(tmp);
 
     while (!list_empty(l1) && !list_empty(l2)) {
-        element_t *l1_entry = list_entry(l1, element_t, list);
-        element_t *l2_entry = list_entry(l2, element_t, list);
-        element_t *tmp_entry =
-            strcmp(l1_entry->value, l2_entry->value) < 0 ? l1_entry : l2_entry;
+        element_t *l1_entry = list_first_entry(l1, element_t, list);
+        element_t *l2_entry = list_first_entry(l2, element_t, list);
+        element_t *tmp_entry;
+        if (descend)
+            tmp_entry = strcmp(l1_entry->value, l2_entry->value) > 0 ? l1_entry
+                                                                     : l2_entry;
+        else
+            tmp_entry = strcmp(l1_entry->value, l2_entry->value) < 0 ? l1_entry
+                                                                     : l2_entry;
+
         list_move_tail(&tmp_entry->list, &tmp);
     }
 
     list_splice_tail_init(l1, &tmp);
     list_splice_tail_init(l2, &tmp);
     list_splice(&tmp, l1);
-    return q_size(l1);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
@@ -520,17 +525,21 @@ int q_merge(struct list_head *head, bool descend)
     if (list_is_singular(head))
         return q_size(list_first_entry(head, queue_contex_t, chain)->q);
 
-    queue_contex_t *result_entry =
-        list_entry(head->next, queue_contex_t, chain);
+    int size = q_size(head);
+    int iter = (size % 2) ? size / 2 + 1 : size / 2;
 
-    struct list_head *next = head->next->next;
-    while (next != head) {
-        queue_contex_t *next_entry = list_entry(next, queue_contex_t, chain);
-        list_splice_init(next_entry->q, result_entry->q);
-        next_entry->size = 0;
-        result_entry->size = q_size(result_entry->q);
-        next = next->next;
+    for (int i = 0; i < iter; i++) {
+        queue_contex_t *l1 = list_first_entry(head, queue_contex_t, chain);
+        queue_contex_t *l2 = list_entry(l1->chain.next, queue_contex_t, chain);
+
+        while (!list_empty(l1->q) && !list_empty(l2->q)) {
+            mergeTwoList(l1->q, l2->q, descend);
+            list_move_tail(&l2->chain, head);
+
+            // move to next pair of queues
+            l1 = list_entry(l1->chain.next, queue_contex_t, chain);
+            l2 = list_entry(l1->chain.next, queue_contex_t, chain);
+        }
     }
-    q_sort(result_entry->q, descend);
-    return result_entry->size;
+    return q_size(head);
 }
