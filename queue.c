@@ -324,7 +324,7 @@ int q_ascend(struct list_head *head)
     element_t *back = list_entry(head->prev, element_t, list);
     element_t *front = list_entry(head->prev->prev, element_t, list);
 
-    while (front->list.prev != head) {
+    while (&front->list != head) {
         if (strcmp(back->value, front->value) > 0) {
             // back value > front value (strictly ascend): both move ahead one
             // entry
@@ -339,6 +339,7 @@ int q_ascend(struct list_head *head)
     }
     return q_size(head);
 }
+
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
@@ -349,7 +350,7 @@ int q_descend(struct list_head *head)
     element_t *back = list_entry(head->prev, element_t, list);
     element_t *front = list_entry(head->prev->prev, element_t, list);
 
-    while (front->list.prev != head) {
+    while (&front->list != head) {
         if (strcmp(back->value, front->value) < 0) {
             front = list_entry(front->list.prev, element_t, list);
             back = list_entry(back->list.prev, element_t, list);
