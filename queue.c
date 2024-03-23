@@ -43,13 +43,13 @@ bool q_insert_head(struct list_head *head, char *s)
         return false;
 
     element_t *new_node = malloc(sizeof(element_t));
-    // malloc failure
+    /*malloc failure*/
     if (!new_node)
         return false;
 
     new_node->value = malloc(strlen(s) + 1);
 
-    // duplicate string failure
+    /*duplicate string failure*/
     if (!new_node->value) {
         free(new_node);
         return false;
@@ -72,13 +72,13 @@ bool q_insert_tail(struct list_head *head, char *s)
         return false;
 
     element_t *new_node = malloc(sizeof(element_t));
-    // malloc failure
+    /* malloc failure*/
     if (!new_node)
         return false;
 
     new_node->value = malloc(strlen(s) + 1);
 
-    // duplicate string failure
+    /*duplicate string failure*/
     if (!new_node->value) {
         free(new_node);
         return false;
@@ -105,7 +105,8 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 
     if (sp) {
         strncpy(sp, rm_node->value, bufsize);
-        sp[bufsize - 1] = '\0';  // Ensure null-termination of the copied string
+        sp[bufsize - 1] =
+            '\0'; /* Ensure null-termination of the copied string*/
     }
     return rm_node;
 }
@@ -121,7 +122,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 
     if (sp) {
         strncpy(sp, rm_node->value, bufsize);
-        sp[bufsize - 1] = '\0';  // Ensure null-termination of the copied string
+        sp[bufsize - 1] = '\0'; /*Ensure null-termination of the copied string*/
     }
     return rm_node;
 }
@@ -338,7 +339,7 @@ void list_sort(struct list_head *head, list_cmp_func_t cmp)
         for (bits = count; bits & 1; bits >>= 1)
             tail = &(*tail)->prev;
 
-        // for GNU C Library
+        /*for GNU C Library*/
         if (__glibc_likely(bits)) {
             struct list_head *a = *tail, *b = a->prev;
 
@@ -419,11 +420,11 @@ void q_sort(struct list_head *head, bool descend)
     if (!head || list_empty(head) || !head->next)
         return;
 
-    // cut circular list
+    /*cut circular list*/
     head->prev->next = NULL;
     head->next = mergeSort(head->next);
 
-    // reconstruct double-linked list
+    /*econstruct double-linked list*/
     head->next->prev = head;
     struct list_head *tail = head->next;
     while (tail->next)
@@ -450,8 +451,8 @@ int q_ascend(struct list_head *head)
 
     while (&front->list != head) {
         if (strcmp(back->value, front->value) > 0) {
-            // back value > front value (strictly ascend): both move ahead one
-            // entry
+            /*back value > front value (strictly ascend): both move ahead one*/
+            /*entry*/
             front = list_entry(front->list.prev, element_t, list);
             back = list_entry(back->list.prev, element_t, list);
         } else {
@@ -526,7 +527,7 @@ int q_merge(struct list_head *head, bool descend)
         return q_size(list_first_entry(head, queue_contex_t, chain)->q);
 
     int size = q_size(head);
-    int iter = (size % 2) ? size / 2 + 1 : size / 2;
+    int iter = (size & 1) ? (size >> 1) + 1 : size >> 1;
 
     for (int i = 0; i < iter; i++) {
         queue_contex_t *l1 = list_first_entry(head, queue_contex_t, chain);
@@ -536,7 +537,7 @@ int q_merge(struct list_head *head, bool descend)
             mergeTwoList(l1->q, l2->q, descend);
             list_move_tail(&l2->chain, head);
 
-            // move to next pair of queues
+            /*move to next pair of queues*/
             l1 = list_entry(l1->chain.next, queue_contex_t, chain);
             l2 = list_entry(l1->chain.next, queue_contex_t, chain);
         }
