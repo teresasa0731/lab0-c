@@ -296,7 +296,7 @@ static struct list_head *mergeSort(struct list_head *head)
     return mergeSortedList(mergeSort(head), mergeSort(mid));
 }
 
-void merge_sort(struct list_head *head, bool descend)
+void q_sort(struct list_head *head, bool descend)
 {
     if (!head || list_empty(head) || !head->next)
         return;
@@ -317,25 +317,6 @@ void merge_sort(struct list_head *head, bool descend)
     if (descend)
         q_reverse(head);
 }
-
-int cmp(void *priv, const struct list_head *a, const struct list_head *b)
-{
-    bool descend = *(bool *) priv;
-    char *a_val = list_entry(a, element_t, list)->value;
-    char *b_val = list_entry(b, element_t, list)->value;
-    return descend ? strcmp(b_val, a_val) : strcmp(a_val, b_val);
-}
-
-/* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend)
-{
-#if (sortVer == 1)
-    list_sort(&descend, head, cmp);
-#else
-    merge_sort(head, descend);
-#endif
-}
-
 
 
 /* Remove every node which has a node with a strictly less value anywhere to

@@ -3,9 +3,8 @@
 #ifndef LIST_SORT_H
 #define LIST_SORT_H
 
+#include <stdint.h>
 #include "list.h"
-
-struct list_head;
 
 typedef int
     __attribute__((nonnull(2, 3))) (*list_cmp_func_t)(void *,
